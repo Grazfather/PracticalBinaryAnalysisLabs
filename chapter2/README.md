@@ -91,7 +91,10 @@ Using a dump from my `dummy` binary:
 > representation versus its representation in memory. What are the major
 > differences?
 
-he segments are mapped based on their address and flags, and the loader only has to worry about mapping and copying them as appropriate. The sections were already mapped into the proper location in the file at link time to overlap with the segment to which they belong.
+The segments are mapped based on their address and flags, and the loader only
+has to worry about mapping and copying them as appropriate. The sections were
+already mapped into the proper location in the file at link time to overlap
+with the segment to which they belong.
 
 ## 3. C and C++ Binaries
 
@@ -123,7 +126,23 @@ void func2(std::string s)
 }
 ```
 
+The code is mostly the same, same sections and segments. The real only
+different I noticed is that the imported function are different, and because
+C++ support polymorphism, the names are mangled. Using `ldd` to see which
+libraries are imported, the C++ version imports a few more: libstdc++, libgcc,
+and libc.
+
 ## 4. Lazy Binding
 > Use 'objdump` to disassemble the PLT section of an ELF binary. Which GOT
 > entries do the PLT stubs use? Now view the contents of those GOT entries
-> (again with objdump) and analyze their relation- ship with the PLT.
+> (again with objdump) and analyze their relationship with the PLT.
+
+Each PLT entry starts with a jump a different 'slot' of the GOT, and the GOT is
+prepopulated with the address immediately after the jump, which jumps to a
+special slot at the start of the PLT, after an index arg is pushed onto the
+stack. This special slot jumps to a resolving function, which both patches the
+GOT with the correct address of the function, and finally jumps there.
+Subsequent calls to this PLT entry does the same first step, jumping to the
+appropriate step in the GOT, but at this point the GOT has been modified, and
+the GOT entry now points directly to the function. The push and jump after the
+jump in this PLT entry should never be executed again.
